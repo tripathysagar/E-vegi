@@ -5,33 +5,11 @@ import { Seller, SellingItemList } from "../db/index";
 import generatePassword from "../utils/generatePassword";
 import jwtSign from '../utils/jwtSign';
 import {validateJWT} from '../middleware/validateJWT';
-
+import { signupInput, signinInput, itemToSell } from '../utils/zodValidator';
 const router = express.Router();
 
 
-const signupInput = z.object({
-    username: z.string().email(),
-    password: z.string().min(5).max(15),
-    location: z.string().nonempty(),
-    firstName: z.string().nonempty(),
-    lastName: z.string().nonempty(),
 
-});
-
-const signinInput = z.object({
-    username: z.string().email(),
-    password: z.string().min(5).max(15),
-});
-
-const itemToSell = z.object({
-    name: z.string().nonempty(),
-    description: z.string().nonempty(),
-    imageLink : z.string().url(),
-    quantityAvailable:  z.number(),
-    minSellingQuantity : z.number(),
-    pricePerUnit: z.number().positive(),
-    location: z.string().nonempty()
-});
 
 
 let status : number;
@@ -113,7 +91,7 @@ router.post("/signin", async (req, resp) =>{
 })
 
 
-
+// https://github.com/tripathysagar/E-vegi/wiki/The-backed#add-item-to-sell
 router.post("/item", validateJWT, async(req, resp) =>{
     const id = req.headers.id;
     const userType = req.headers.userType;
@@ -179,7 +157,7 @@ router.post("/item", validateJWT, async(req, resp) =>{
 })
 
 
-
+// https://github.com/tripathysagar/E-vegi/wiki/The-backed#items-that-are-left-to-be-sold
 router.get("/item/unsold", validateJWT, async(req, resp) =>{
     const id = req.headers.id;
     const userType = req.headers.userType;
@@ -234,4 +212,4 @@ router.get("/user", validateJWT, async(req, resp) =>{
     resp.status(status).send({message : message});
 
 })
-export default router
+export default router;

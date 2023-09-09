@@ -12,13 +12,19 @@ export const validateJWT = (req: Request, res: Response, next: NextFunction) => 
     const token = authHeader.split(' ')[1];
     jwt.verify(token, SECRET, (err, payload) => {
       if (err) {
-        return res.sendStatus(403);
+        return res.sendStatus(403).send({
+          message: "Decoding error"
+        });
       }
       if (!payload) {
-        return res.sendStatus(403);
+        return res.sendStatus(403).send({
+          message: "missing mandatory field"
+        });
       }
       if (typeof payload === "string") {
-        return res.sendStatus(403);
+        return res.sendStatus(403).send({
+          message: "invalid data"
+        });
       }
       
       console.log(payload)

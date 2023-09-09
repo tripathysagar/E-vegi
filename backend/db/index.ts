@@ -6,12 +6,24 @@ const sellerSchema = new mongoose.Schema({
     address: String,
     itemId: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'SellingList' // Reference to the RelatedModel collection
+        ref: 'SellingItemList' // Reference to the RelatedModel collection
     }],
     firstName: String,
     lastName: String,
 });
 
+
+const buyerSchema = new mongoose.Schema({
+    username: String,
+    password: String,
+    address: String,
+    bag: [{
+        itemId: mongoose.Schema.Types.ObjectId,
+        quantity: Number,
+    }],
+    firstName: String,
+    lastName: String,
+});
 
 const SellingItemListSchema = new mongoose.Schema({
     name: String,
@@ -25,6 +37,8 @@ const SellingItemListSchema = new mongoose.Schema({
 
 
 
+
+
 export const Seller = mongoose.model('Seller', sellerSchema);
 export const SellingItemList = mongoose.model('SellingItemList', SellingItemListSchema);
-
+export const Buyer = mongoose.model('Buyer', buyerSchema);
