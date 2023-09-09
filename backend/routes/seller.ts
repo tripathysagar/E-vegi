@@ -13,6 +13,9 @@ const signupInput = z.object({
     username: z.string().email(),
     password: z.string().min(5).max(15),
     location: z.string().nonempty(),
+    firstName: z.string().nonempty(),
+    lastName: z.string().nonempty(),
+
 });
 
 const signinInput = z.object({
@@ -24,8 +27,8 @@ const itemToSell = z.object({
     name: z.string().nonempty(),
     description: z.string().nonempty(),
     imageLink : z.string().url(),
-    quantityAvailable:  z.string(),
-    minSellingQuantity : z.string().nonempty(),
+    quantityAvailable:  z.number(),
+    minSellingQuantity : z.number(),
     pricePerUnit: z.number().positive(),
     location: z.string().nonempty()
 });
@@ -51,13 +54,21 @@ router.post("/signup",async (req, resp) => {
     const username = parsedInput.data.username;
     const password = generatePassword(parsedInput.data.password);
     const location = parsedInput.data.location;
+    const firstName = parsedInput.data.firstName;
+    const lastName = parsedInput.data.lastName;
 
     const seller = await Seller.findOne({ username: username });
 
     if (seller) {
         resp.status(409).json({ message: 'User already exists' });
       } else {
-        const newUser = new Seller({ username, password, location });
+        const newUser = new Seller({ 
+            username, 
+            password, 
+            location,
+            firstName,
+            lastName,
+         });
         await newUser.save();
         const token = jwtSign(newUser._id.toString(), "seller")
         resp.json({ message: 'User created successfully', token });
@@ -116,9 +127,10 @@ router.post("/item", validateJWT, async(req, resp) =>{
             message = parsedInput.error;
         }
         else{
-            const quantityAvailable = body.quantityAvailable;
-            const minSellingQuantity = body.minSellingQuantity;
+            const quantityAvailable = parsedInput.data.quantityAvailable;
+            const minSellingQuantity = parsedInput.data.minSellingQuantity;
             
+            console.log(body)
             
             if(minSellingQuantity > quantityAvailable){
                     message = "the min selling unit is grater than available units";
@@ -126,20 +138,20 @@ router.post("/item", validateJWT, async(req, resp) =>{
             }
             else{
                 
-                const item = await SellingItemList.findOne({ name: body.name});
+                const item = await SellingItemList.findOne({ name: parsedInput.data.name});
 
                 if(item){
                     message = "item already present";
                     status = 401;
                 }else{
                     const sellingItem = new SellingItemList({ 
-                        name: body.name,
-                        description: body.description,
-                        imageLink: body.imageLink,
+                        name: parsedInput.data.name,
+                        description: parsedInput.data.description,
+                        imageLink: parsedInput.data.imageLink,
                         quantityAvailable: quantityAvailable,
                         minSellingQuantity: minSellingQuantity,
-                        pricePerUnit: body.pricePerUnit,
-                        location: body.location,
+                        pricePerUnit: parsedInput.data.pricePerUnit,
+                        location: parsedInput.data.location,
                     });
                     await sellingItem.save();
 
@@ -149,7 +161,7 @@ router.post("/item", validateJWT, async(req, resp) =>{
                     await seller.updateOne({
                         itemId: itemId
                     })
-                    console.log(itemId)
+                    //console.log(itemId)
                     message = "item added";
                     status = 200;
                 }
@@ -166,4 +178,60 @@ router.post("/item", validateJWT, async(req, resp) =>{
 
 })
 
+
+
+router.get("/item/unsold", validateJWT, async(req, resp) =>{
+    const id = req.headers.id;
+    const userType = req.headers.userType;
+
+    const seller = await Seller.findById(id);
+    if(seller && userType === 'seller'){
+        
+        message = [];
+        const sellerItems = seller.itemId;
+        console.log(sellerItems)
+        for(let i =0; i < sellerItems.length; i++){
+            
+            const item = await SellingItemList.findById(sellerItems[i]);
+            console.log(item)
+            if(Number(item?.quantityAvailable )=== 0){
+                message.push(item);
+            }   
+        }
+        status = 200
+        
+    }else{
+        message = "please sign-in";
+        status = 401;
+    }
+
+    resp.status(status).send({message : message});
+
+})
+
+
+
+router.get("/user", validateJWT, async(req, resp) =>{
+    const id = req.headers.id;
+    const userType = req.headers.userType;
+
+    const seller = await Seller.findById(id);
+    if(seller && userType === 'seller'){
+        
+        
+        status = 200
+        resp.status(status).send({
+            firstName: seller?.firstName,
+        });
+        return 
+
+        
+    }else{
+        message = "please sign-in";
+        status = 401;
+    }
+
+    resp.status(status).send({message : message});
+
+})
 export default router

@@ -7,7 +7,9 @@ const sellerSchema = new mongoose.Schema({
     itemId: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'SellingList' // Reference to the RelatedModel collection
-      }]
+    }],
+    firstName: String,
+    lastName: String,
 });
 
 
@@ -15,8 +17,8 @@ const SellingItemListSchema = new mongoose.Schema({
     name: String,
     description: String,
     imageLink: String,
-    quantityAvailable: String,
-    minSellingUnit: String,
+    quantityAvailable: Number,
+    minSellingQuantity: Number,
     pricePerUnit: Number,
     location: String,
 });
