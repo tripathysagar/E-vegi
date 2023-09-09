@@ -3,7 +3,7 @@ import express from 'express';
 import z from "zod";
 
 import { Seller, SellingList } from "../db/index";
-
+import generatePassword from "../utils/generatePassword";
 
 const router = express.Router();
 
@@ -19,7 +19,7 @@ router.post("/signup",async (req, resp) => {
 
     const parsedInput = signupInput.safeParse(req.body)
     if(!parsedInput.success){
-        resp.status(403).send({
+        resp.status(400).send({
             "message": "Please enter valid input"
         })
         return;
@@ -28,13 +28,13 @@ router.post("/signup",async (req, resp) => {
     
 
     const username = parsedInput.data.username;
-    const password = parsedInput.data.password;
+    const password = generatePassword(parsedInput.data.password);
     const location = parsedInput.data.location;
 
     const seller = await Seller.findOne({ username: username });
 
     if (seller) {
-        resp.status(403).json({ message: 'User already exists' });
+        resp.status(409).json({ message: 'User already exists' });
       } else {
         const newUser = new Seller({ username, password, location });
         await newUser.save();
