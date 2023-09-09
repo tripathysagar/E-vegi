@@ -11,8 +11,7 @@ const sellerSchema = new mongoose.Schema({
 });
 
 
-const sellingList = new mongoose.Schema({
-    dateAdded: Date,
+const SellingItemListSchema = new mongoose.Schema({
     name: String,
     description: String,
     imageLink: String,
@@ -25,5 +24,5 @@ const sellingList = new mongoose.Schema({
 
 
 export const Seller = mongoose.model('Seller', sellerSchema);
-export const SellingList = mongoose.model('SellingList', sellerSchema);
+export const SellingItemList = mongoose.model('SellingItemList', SellingItemListSchema);
 

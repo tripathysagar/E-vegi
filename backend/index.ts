@@ -11,7 +11,7 @@ app.get('/', (req, res)=>{
 })
 
 app.use(express.json())
-app.use("/admin", sellerRouter)
+app.use("/seller", sellerRouter)
 
 app.listen(port, ()=>{
     console.log("server is running @"+port)
