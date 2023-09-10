@@ -23,3 +23,9 @@ export  const itemToSell = z.object({
     pricePerUnit: z.number().positive(),
     location: z.string().nonempty()
 });
+
+
+export const addItemTobag = z.object({
+    itemId: z.string().nonempty(),
+    quantity: z.number().positive(),
+})

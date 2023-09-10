@@ -27,7 +27,7 @@ export const validateJWT = (req: Request, res: Response, next: NextFunction) => 
         });
       }
       
-      console.log(payload)
+      //console.log(payload)
       req.headers["id"] = payload.id;
       req.headers["userType"] = payload.userType;
 

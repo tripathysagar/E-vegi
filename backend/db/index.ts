@@ -33,6 +33,7 @@ const SellingItemListSchema = new mongoose.Schema({
     minSellingQuantity: Number,
     pricePerUnit: Number,
     location: String,
+    dateAdded: Number
 });
 
 

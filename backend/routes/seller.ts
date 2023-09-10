@@ -1,5 +1,5 @@
 import express from 'express';
-import z from "zod";
+
 
 import { Seller, SellingItemList } from "../db/index";
 import generatePassword from "../utils/generatePassword";
@@ -118,10 +118,7 @@ router.post("/item", validateJWT, async(req, resp) =>{
                 
                 const item = await SellingItemList.findOne({ name: parsedInput.data.name});
 
-                if(item){
-                    message = "item already present";
-                    status = 401;
-                }else{
+                
                     const sellingItem = new SellingItemList({ 
                         name: parsedInput.data.name,
                         description: parsedInput.data.description,
@@ -130,6 +127,7 @@ router.post("/item", validateJWT, async(req, resp) =>{
                         minSellingQuantity: minSellingQuantity,
                         pricePerUnit: parsedInput.data.pricePerUnit,
                         location: parsedInput.data.location,
+                        dateAdded: Date.now(),
                     });
                     await sellingItem.save();
 
@@ -142,7 +140,7 @@ router.post("/item", validateJWT, async(req, resp) =>{
                     //console.log(itemId)
                     message = "item added";
                     status = 200;
-                }
+                
             }
             
             
@@ -158,7 +156,7 @@ router.post("/item", validateJWT, async(req, resp) =>{
 
 
 // https://github.com/tripathysagar/E-vegi/wiki/The-backed#items-that-are-left-to-be-sold
-router.get("/item/unsold", validateJWT, async(req, resp) =>{
+router.get("/item", validateJWT, async(req, resp) =>{
     const id = req.headers.id;
     const userType = req.headers.userType;
 
@@ -172,9 +170,9 @@ router.get("/item/unsold", validateJWT, async(req, resp) =>{
             
             const item = await SellingItemList.findById(sellerItems[i]);
             console.log(item)
-            if(Number(item?.quantityAvailable )=== 0){
+            
                 message.push(item);
-            }   
+            
         }
         status = 200
         
