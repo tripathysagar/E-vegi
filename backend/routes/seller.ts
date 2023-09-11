@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from "mongoose";
 
 
 import { Seller, SellingItemList } from "../db/index";
@@ -116,23 +117,24 @@ router.post("/item", validateJWT, async(req, resp) =>{
             }
             else{
                 
-                const item = await SellingItemList.findOne({ name: parsedInput.data.name});
+                //const item = await SellingItemList.findOne({ name: parsedInput.data.name});
 
                 
-                    const sellingItem = new SellingItemList({ 
-                        name: parsedInput.data.name,
-                        description: parsedInput.data.description,
-                        imageLink: parsedInput.data.imageLink,
-                        quantityAvailable: quantityAvailable,
-                        minSellingQuantity: minSellingQuantity,
-                        pricePerUnit: parsedInput.data.pricePerUnit,
-                        location: parsedInput.data.location,
-                        dateAdded: Date.now(),
-                    });
-                    await sellingItem.save();
+                const sellingItem = new SellingItemList({ 
+                            name: parsedInput.data.name,
+                            description: parsedInput.data.description,
+                            imageLink: parsedInput.data.imageLink,
+                            quantityAvailable: quantityAvailable,
+                            minSellingQuantity: minSellingQuantity,
+                            pricePerUnit: parsedInput.data.pricePerUnit,
+                            location: parsedInput.data.location,
+                            dateAdded: Date.now(),
+                });
+                await sellingItem.save();
 
-                    const itemId = seller.itemId;
-                    itemId.push(sellingItem._id);
+                
+                const itemId : any= seller.itemId;
+                itemId.push(sellingItem._id);
                     
                     await seller.updateOne({
                         itemId: itemId

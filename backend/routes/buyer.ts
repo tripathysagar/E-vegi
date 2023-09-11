@@ -2,7 +2,7 @@ import express from 'express';
 import mongoose from "mongoose";
 
 
-import {Seller, Buyer, SellingItemList } from "../db/index";
+import {Seller, Buyer, SellingItemList, Bag } from "../db/index";
 import generatePassword from "../utils/generatePassword";
 import jwtSign from '../utils/jwtSign';
 import {validateJWT} from '../middleware/validateJWT';
@@ -37,16 +37,19 @@ router.post("/signup",async (req, resp) => {
     if (seller) {
         resp.status(409).json({ message: 'User already exists' });
       } else {
+        
         const newUser = new Buyer({ 
             username, 
             password, 
             location,
             firstName,
             lastName,
-         });
+        });
 
         await newUser.save();
         const token = jwtSign(newUser._id.toString(), "buyer")
+        console.log(location)
+        console.log(newUser.bagId)
         resp.json({ message: 'User created successfully', token });
       }
       return
@@ -110,6 +113,7 @@ router.post("/addToBag", validateJWT, async (req, resp) =>{
         })
         return;
     }
+    // got correct resonse for the api
     let status : number;
     let message : any;
 
@@ -118,6 +122,7 @@ router.post("/addToBag", validateJWT, async (req, resp) =>{
 
     const item = await SellingItemList.findById(itemId);
     
+    // let the user access if it is buyer 
     if(item?.quantityAvailable !== undefined && item?.minSellingQuantity !== undefined && userType === 'buyer'){
         
         const amountLeft : Number = item?.quantityAvailable / item?.minSellingQuantity;
@@ -127,29 +132,32 @@ router.post("/addToBag", validateJWT, async (req, resp) =>{
             message = "item added";
 
             const buyer = await Buyer.findById(id);
-            
-            if(buyer){
-                const newItem = {
-                    itemId: new mongoose.Types.ObjectId(String(itemId)),
-                    quantity: Number(quantityToBuy),
-                };
-                //buyer.bag.push(newItem);
-                await buyer.updateOne({
-                    bag: buyer.bag
+            let bag:any;
+            //buyer does not have any bag 
+            //initial case or after checkout 
+            if(buyer?.bagId === undefined){
+                bag = new Bag({
+                    isActive: false,
+                    buyerId: buyer?._id,
+                    items: [{
+                        itemId:   itemId,
+                        quantity: quantityToBuy,
+                        isPresent: true,
+                    }]
                 });
+                await bag.save();
+                console.log(buyer);
+                
+                if(buyer === null) return 
+                buyer.bagId = bag?._id;
+
+                await buyer.save();
+            }else{//does exists 
+
             }
             
             
-            /*
-            console.log(`quantityAvailable : ${item?.quantityAvailable} and minSellingQuantity : ${item?.minSellingQuantity}`)
-            console.log(quantityToBuy)
-            console.log(item?.quantityAvailable - item?.minSellingQuantity * Number(quantityToBuy));
-            await SellingItemList.findOneAndUpdate(
-                {_id : item._id}, 
-                {quantityAvailable: item?.quantityAvailable - item?.minSellingQuantity * Number(quantityToBuy)}, 
-                {returnOriginal: false}
-            );
-            */
+            
 
            
         }else{

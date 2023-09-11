@@ -1,11 +1,12 @@
 import mongoose from "mongoose";
+import { string } from "zod";
 
 const sellerSchema = new mongoose.Schema({
     username: String,
     password: String,
     address: String,
     itemId: [{
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Types.ObjectId,
         ref: 'SellingItemList' // Reference to the RelatedModel collection
     }],
     firstName: String,
@@ -16,16 +17,15 @@ const sellerSchema = new mongoose.Schema({
 const buyerSchema = new mongoose.Schema({
     username: String,
     password: String,
-    address: String,
-    bag: [{
-        itemId: mongoose.Schema.Types.ObjectId,
-        quantity: Number,
-    }],
+    bagId: {
+        type: mongoose.Types.ObjectId,
+    },
     firstName: String,
     lastName: String,
+    location: String,
 });
 
-const SellingItemListSchema = new mongoose.Schema({
+const sellingItemListSchema = new mongoose.Schema({
     name: String,
     description: String,
     imageLink: String,
@@ -37,9 +37,26 @@ const SellingItemListSchema = new mongoose.Schema({
 });
 
 
-
+const bagSchema = new mongoose.Schema({
+    isActive: Boolean,
+    buyerId: {
+        type: mongoose.Types.ObjectId,
+        quantity: Number,
+    },
+    items: [
+        {
+        itemId:{
+            type: mongoose.Types.ObjectId,
+            ref: 'SellingItemList'
+        },
+        quantity: Number,
+        isPresent: Boolean
+    }]
+});
 
 
 export const Seller = mongoose.model('Seller', sellerSchema);
-export const SellingItemList = mongoose.model('SellingItemList', SellingItemListSchema);
+export const SellingItemList = mongoose.model('SellingItemList', sellingItemListSchema);
 export const Buyer = mongoose.model('Buyer', buyerSchema);
+export const Bag = mongoose.model('Bag', bagSchema);
+

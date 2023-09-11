@@ -62,7 +62,7 @@ export const buyerAvailableItems = async(req: Request, res: Response, next: Next
     try{
         await Seller.find({}).then(async (sellers) => {
             for(let i = 0; i < sellers.length; i++){
-                const sellerItems : mongoose.Types.ObjectId[] = sellers[i]?.itemId;
+                const sellerItems : any[] = sellers[i]?.itemId;
                 for (const itemId of sellerItems){
                     const data = await fetchItems(itemId);
                     if (data === 0) {
