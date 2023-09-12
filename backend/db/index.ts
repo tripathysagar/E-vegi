@@ -17,9 +17,7 @@ const sellerSchema = new mongoose.Schema({
 const buyerSchema = new mongoose.Schema({
     username: String,
     password: String,
-    bagId: {
-        type: mongoose.Types.ObjectId,
-    },
+    bagId: mongoose.Types.ObjectId,
     firstName: String,
     lastName: String,
     location: String,

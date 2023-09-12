@@ -27,5 +27,5 @@ export  const itemToSell = z.object({
 
 export const addItemTobag = z.object({
     itemId: z.string().nonempty(),
-    quantity: z.number().positive(),
+    quantity: z.number().nonnegative(),
 })
