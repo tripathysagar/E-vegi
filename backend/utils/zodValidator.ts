@@ -28,4 +28,15 @@ export  const itemToSell = z.object({
 export const addItemTobag = z.object({
     itemId: z.string().nonempty(),
     quantity: z.number().nonnegative(),
-})
+});
+
+export const bagResponse = z.object({
+    _id: z.string().nonempty(),
+    items: z.object({
+        itemId: z.string().nonempty(),
+        quantity: z.number().positive(),
+        isPresent: z.boolean()
+    }).array(),
+});
+
+

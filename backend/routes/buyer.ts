@@ -8,7 +8,7 @@ import generatePassword from "../utils/generatePassword";
 import jwtSign from '../utils/jwtSign';
 import {validateJWT} from '../middleware/validateJWT';
 import {buyerAvailableItems} from '../middleware/buyerAvailableItems';
-import { signupInput, signinInput, itemToSell, addItemTobag } from '../utils/zodValidator';
+import { signupInput, signinInput, itemToSell, addItemTobag,  bagResponse } from '../utils/zodValidator';
 import { string } from 'zod';
 
 const router = express.Router();
@@ -150,7 +150,7 @@ router.post("/addToBag", validateJWT, async (req, resp) =>{
             }
 
             console.log(bag);
-            resp.status(201).send(bag);
+            
             return 
         }catch(error){
             console.log(error);
@@ -221,14 +221,16 @@ router.post("/addToBag", validateJWT, async (req, resp) =>{
                             await bag.save();
                         }
                         message = bag;
-                        resp.status(201).send(bag);
-                        return 
+                        
                     }else{
                         addToBag(itemId, quantityToBuy);
                         console.log("bags are in deactivate");
                         //resp.status(201).send(bag);
-                        return 
+                        
                     }   
+                    resp.status(201).send({
+                        "message": "item added"
+                    });
 
                 }catch(error){
                     console.log(error);
@@ -255,6 +257,116 @@ router.post("/addToBag", validateJWT, async (req, resp) =>{
     
 
 })
+
+//
+router.get("/bag", validateJWT, async(req, resp) => {
+    const id = req.headers.id;
+    const userType = req.headers.userType;
+    console.log(`id = ${id}`);
+    if (userType === "buyer"){
+
+        try{
+
+            const buyer = await Buyer.findById(id); // get buyer Id
+
+            let bagObj = await Bag.findById(buyer?.bagId); // get bag ID
+
+        
+            //console.log(bagObj);
+            
+            const itemsResp = [];
+            const items = bagObj?.items;
+            if(items){
+                for(let i = 0; i < items.length; i++){
+                    // console.log(items[i]); 
+                    const sellingItem = await SellingItemList.findById(items[i]?.itemId);
+
+                    const availableItemsStatus = Number(sellingItem?.quantityAvailable); // available quantity for the item 
+
+                    let bagItemStatus: Number;
+                    
+                    if(sellingItem?.minSellingQuantity){
+
+                        bagItemStatus = Number(sellingItem?.minSellingQuantity) * Number(items[i]?.quantity);
+
+                        if(Number(bagItemStatus) < Number(availableItemsStatus )){
+                            // check if the amount in the bag is available 
+                            
+                            items[i].isPresent = true;
+                        }else{
+                            // if the amount is not availbe for the item
+                            items[i].isPresent = false;
+                        }
+                    }
+                    itemsResp.push ({
+                        itemId : items[i].itemId,
+                        quantity: items[i].quantity,
+                        isPresent: items[i].isPresent,
+                    })
+                    
+            }
+
+            const respBag = {
+                id: bagObj?._id,
+                items: itemsResp,
+            };
+            
+
+            resp.status(200).send(respBag);
+            return;
+        }}catch(error){
+            console.log(error);
+            resp.status(500).send(error);
+            return;
+        }
+        
+    }
+    else{
+        resp.status(401).send({
+            message: "unauthorize"
+        });
+    }
+    
+
+
+})
+
+
+// https://github.com/tripathysagar/E-vegi/wiki/The-backed#get-user
+router.get("/user", validateJWT, async(req, resp) => {
+    const id = req.headers.id;
+    const userType = req.headers.userType;
+    console.log(`id = ${id}`);
+    if (userType === "buyer"){
+
+        try{
+
+            const buyer = await Buyer.findById(id); // get buyer Id
+
+            let bagObj = await Bag.findById(buyer?.bagId); // get bag ID
+            
+            let userResp :any;
+
+            if(buyer && bagObj){
+                userResp = {
+                    firstName: buyer?.firstName,
+                    bagSize: bagObj?.items?.length,
+                }
+            }
+
+            resp.status(200).send(userResp);
+
+
+        }catch(error){
+            console.log(error);
+            resp.status(500).send(error);
+            return;
+        }
+    }
+
+})
+
+
 
 export default router;
 
