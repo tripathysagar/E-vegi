@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { boolean } from "webidl-conversions";
 import { string } from "zod";
 
 const sellerSchema = new mongoose.Schema({
@@ -48,13 +49,31 @@ const bagSchema = new mongoose.Schema({
             ref: 'SellingItemList'
         },
         quantity: Number,
-        isPresent: Boolean
+        isPresent: Boolean,
+        price: Number
     }]
 });
+
+
+const orderSchema =  new mongoose.Schema({ 
+    buyerId: {
+        type: mongoose.Types.ObjectId,
+        ref: 'Buyer'
+    },
+    bagId: {
+        type: mongoose.Types.ObjectId,
+        ref: 'Bag'
+    },
+    paymentStatus: String,
+    packageStatus: String,
+})
 
 
 export const Seller = mongoose.model('Seller', sellerSchema);
 export const SellingItemList = mongoose.model('SellingItemList', sellingItemListSchema);
 export const Buyer = mongoose.model('Buyer', buyerSchema);
 export const Bag = mongoose.model('Bag', bagSchema);
+export const Order = mongoose.model('Order', orderSchema);
+
+
 

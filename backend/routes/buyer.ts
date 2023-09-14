@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const { ObjectId } = require('mongodb');
 
 
-import {Seller, Buyer, SellingItemList, Bag } from "../db/index";
+import {Seller, Buyer, SellingItemList, Bag, Order } from "../db/index";
 import generatePassword from "../utils/generatePassword";
 import jwtSign from '../utils/jwtSign';
 import {validateJWT} from '../middleware/validateJWT';
@@ -128,6 +128,11 @@ router.post("/addToBag", validateJWT, async (req, resp) =>{
 
     async function addToBag(itemId:String, quantityToBuy:Number){
         try{
+            if(item?.pricePerUnit === undefined || quantityToBuy === undefined ){
+                console.log("got empty item?.pricePerUnit * quantityToBuy");
+                resp.status(500).send();
+                return;
+            }
             let bag = new Bag({
                 isActive: true,
                 buyerId: buyer?._id,
@@ -135,9 +140,11 @@ router.post("/addToBag", validateJWT, async (req, resp) =>{
                     itemId:   itemId,
                     quantity: quantityToBuy,
                     isPresent: true,
+                    price: item?.pricePerUnit * Number(quantityToBuy)
                 }]
             });
-    
+            
+            console.log(bag);
             await bag.save();
             
             if(buyer){ 
@@ -208,16 +215,18 @@ router.post("/addToBag", validateJWT, async (req, resp) =>{
                         }
 
                         //if the item is not present in the items
-                        if(!updated){
+                        if(!updated && item?.pricePerUnit !== undefined && quantityToBuy !== undefined && Number(quantityToBuy) > 0){
                             items.push({
                                 itemId:   new ObjectId(itemId),
                                 quantity: Number(quantityToBuy),
                                 isPresent: true,
+                                price: item?.pricePerUnit * Number(quantityToBuy)
                             })
                         }
 
                         if(bag){
                             bag.items =  items;
+                            console.log(bag);
                             await bag.save();
                         }
                         message = bag;
@@ -281,15 +290,15 @@ router.get("/bag", validateJWT, async(req, resp) => {
                     // console.log(items[i]); 
                     const sellingItem = await SellingItemList.findById(items[i]?.itemId);
 
-                    const availableItemsStatus = Number(sellingItem?.quantityAvailable); // available quantity for the item 
+                    const availableItemsCost = Number(sellingItem?.quantityAvailable); // available quantity for the item 
 
-                    let bagItemStatus: Number;
+                    let bagItemCost: Number;
                     
                     if(sellingItem?.minSellingQuantity){
 
-                        bagItemStatus = Number(sellingItem?.minSellingQuantity) * Number(items[i]?.quantity);
+                        bagItemCost = Number(sellingItem?.minSellingQuantity) * Number(items[i]?.quantity);
 
-                        if(Number(bagItemStatus) < Number(availableItemsStatus )){
+                        if(Number(bagItemCost) < Number(availableItemsCost )){
                             // check if the amount in the bag is available 
                             
                             items[i].isPresent = true;
@@ -302,6 +311,7 @@ router.get("/bag", validateJWT, async(req, resp) => {
                         itemId : items[i].itemId,
                         quantity: items[i].quantity,
                         isPresent: items[i].isPresent,
+                        price: items[i].price
                     })
                     
             }
@@ -367,6 +377,98 @@ router.get("/user", validateJWT, async(req, resp) => {
 })
 
 
+router.post("/order", validateJWT, async(req, resp) =>{
+    const id = req.headers.id;
+    const userType = req.headers.userType;
+    console.log(`id = ${id}`);
+    if (userType === "buyer"){
 
+        try{
+            const buyer = await Buyer.findById(id); // get buyer Id
+
+            let bag = await Bag.findById(buyer?.bagId); // get bag ID
+
+
+            const bagId = req.body.bagId;
+
+            const orderCheck = await Order.find({
+                bagId: bagId
+            });
+            console.log(orderCheck);
+            
+            function checkIfOrderIsDone(){
+                for(let i = 0; i < orderCheck.length; i++ ){
+                    if(orderCheck[i].bagId === ObjectId(bagId) && orderCheck[i].paymentStatus === "success")
+                        return true
+                    return false
+                } 
+            }
+            
+            if(orderCheck.length === 0 && !checkIfOrderIsDone() ){
+                const order = new Order({
+                    buyerId: buyer?._id ,
+                    bagId: bag?._id,
+                    paymentStatus: "",
+                    packageStatus: "",
+                });
+    
+                const paymentStatus = req.body.paymentStatus;
+                if(bagId ){
+                    if(paymentStatus === "success" ){
+                        order.paymentStatus = "success",
+                        order.packageStatus = "will arrive in a day"
+                    }else{
+                        order.paymentStatus = "failed",
+                        order.packageStatus = "NA"
+                    }
+                }
+                await order.save();
+                await bag?.updateOne({
+                    isActive: false
+                });
+                console.log(bag);
+                resp.status(200).send({
+                    message: "sucessfully ordered"
+                });
+            }else{
+                // bag is already 
+                resp.status(400).send({
+                    message: "alredy ordered"
+                });
+            }
+
+            
+
+        }catch(error){
+            console.log(error);
+            resp.status(500).send(error);
+            return;
+        }
+    }        
+})
+
+
+
+router.get("/order", validateJWT, async(req, resp) =>{
+    const id = req.headers.id;
+    const userType = req.headers.userType;
+    console.log(`id = ${id}`);
+    if (userType === "buyer"){
+
+        try{
+            const order = await Order.find({
+                buyerId: id
+            }); // get order for the Id
+
+
+            console.log(order);
+
+        }catch(error){
+            console.log(error);
+            resp.status(500).send(error);
+            return;
+        }
+    }        
+})
 export default router;
 
