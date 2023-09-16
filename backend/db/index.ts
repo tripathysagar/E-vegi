@@ -12,6 +12,7 @@ const sellerSchema = new mongoose.Schema({
     }],
     firstName: String,
     lastName: String,
+    moneyRecived: Number,
 });
 
 
@@ -36,7 +37,10 @@ const sellingItemListSchema = new mongoose.Schema({
     orderStatus: [{
         buyId: mongoose.Types.ObjectId,
         quantity: Number,
+        dateOrdered: Number,
     }],
+    sellerId: mongoose.Types.ObjectId,
+    
 });
 
 
@@ -68,6 +72,7 @@ const orderSchema =  new mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: 'Bag'
     },
+    dateOrdered: Number,
     paymentStatus: String,
     packageStatus: String,
 })

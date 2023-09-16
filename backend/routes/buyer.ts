@@ -397,7 +397,9 @@ router.post("/order", validateJWT, async(req, resp) =>{
 
             let bag = await Bag.findById(buyer?.bagId); // get bag ID
 
+            
 
+            
             const bagId = req.body.bagId;
 
             const bagStatus = await Bag.findById(bagId);
@@ -448,12 +450,21 @@ router.post("/order", validateJWT, async(req, resp) =>{
             async function updateItemData(itemId : String, userId: String, quantity : number){
 
                 const item = await SellingItemList.findById(itemId);
-                if(item && item.quantityAvailable !== undefined && item.minSellingQuantity !== undefined){
+                let seller = await Seller.findById(item?.sellerId);
+
+                if(seller && item && 
+                    item.quantityAvailable !== undefined && 
+                    item.minSellingQuantity !== undefined && 
+                    seller?.moneyRecived !== undefined && 
+                    item?.pricePerUnit !== undefined
+                    )
+                {
                     const orderStatus = item.orderStatus;
 
                     orderStatus.push({
                         buyId: Object(userId),
                         quantity: quantity,
+                        dateOrdered: time,
                     });
 
                     item.orderStatus = orderStatus;
@@ -461,12 +472,16 @@ router.post("/order", validateJWT, async(req, resp) =>{
                     //console.log(item);
                     await item.save();
 
+                    seller.moneyRecived = seller?.moneyRecived + quantity * item?.pricePerUnit;
+                    await seller.save()
                 }
                  
             }
+            const time = Date.now();
             
             if( !checkIfOrderIsDone() ){
                 const order = new Order({
+                    dateOrdered: time,
                     buyerId: buyer?._id ,
                     bagId: bag?._id,
                     paymentStatus: "",
@@ -474,7 +489,7 @@ router.post("/order", validateJWT, async(req, resp) =>{
                 });
                 let message = "";
                 const paymentStatus = req.body.paymentStatus;
-                if(bagId ){
+                if(bagId  ){
                     if(paymentStatus === "success" ){
                         order.paymentStatus = "success",
                         order.packageStatus = "will arrive in a day"
@@ -491,19 +506,24 @@ router.post("/order", validateJWT, async(req, resp) =>{
                         await bag?.updateOne({
                             isActive: false
                         });
+
+                        
+                        
                     }else{  
+                        
                         order.paymentStatus = "failed",
                         order.packageStatus = "NA"
                         message = "payment failed";
 
                     }
                 }
-                await order.save();
-                
-                //console.log(bag);
                 resp.status(200).send({
                     message: message
                 });
+                await order.save();
+                
+                //console.log(bag);
+                
             }else{
                 // bag is already 
                 resp.status(400).send({
@@ -537,7 +557,7 @@ router.get("/order", validateJWT, async(req, resp) =>{
 
             
 
-            resp.status(200).send(orders);
+            resp.status(200).send(orders.reverse());
             return;
 
         }catch(error){
