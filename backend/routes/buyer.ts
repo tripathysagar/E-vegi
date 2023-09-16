@@ -282,6 +282,15 @@ router.get("/bag", validateJWT, async(req, resp) => {
 
         
             //console.log(bagObj);
+            // if bag's status is inactive send {} to indicate that
+
+            if(bagObj?.isActive === false){
+                resp.status(200).send({
+                    
+                });
+                return;
+                
+            }
             
             const itemsResp = [];
             const items = bagObj?.items;
@@ -377,7 +386,7 @@ router.get("/user", validateJWT, async(req, resp) => {
 })
 
 
-router.post("/order", validateJWT, async(req, resp) =>{
+router.post("/order", validateJWT, async(req, resp) =>{ 
     const id = req.headers.id;
     const userType = req.headers.userType;
     console.log(`id = ${id}`);
@@ -391,44 +400,109 @@ router.post("/order", validateJWT, async(req, resp) =>{
 
             const bagId = req.body.bagId;
 
+            const bagStatus = await Bag.findById(bagId);
+            // check if the bag entered by the user is already in inactive state or not present send appropirate response of 
+            // of invalid bagId
+            if(!bagStatus){
+                resp.status(401).send({
+                    message: "Did not found the bag"
+                });
+                return;
+            }
+            if(bagStatus?.isActive === false){ 
+
+                resp.status(401).send({
+                    message: "bag is in inactive state"
+                });
+                return;
+            }
+
+
             const orderCheck = await Order.find({
                 bagId: bagId
             });
-            console.log(orderCheck);
+            //console.log(orderCheck);
             
             function checkIfOrderIsDone(){
                 for(let i = 0; i < orderCheck.length; i++ ){
-                    if(orderCheck[i].bagId === ObjectId(bagId) && orderCheck[i].paymentStatus === "success")
-                        return true
-                    return false
+                    
+                        
+                        const userBagId = orderCheck[i].bagId;
+                        if(userBagId !== undefined){
+                        console.log(typeof userBagId.toString(), typeof String(bagId)); 
+                        console.log(userBagId.toString(),  String(bagId));
+
+                        console.log(orderCheck[i].paymentStatus)
+                        }
+
+                        console.log()
+                        if(userBagId !== undefined && String(bagId) === userBagId.toString()  && orderCheck[i].paymentStatus === "success")
+                            return true
+                        
+                    
+                    
                 } 
+                return false
+            }
+
+            async function updateItemData(itemId : String, userId: String, quantity : number){
+
+                const item = await SellingItemList.findById(itemId);
+                if(item && item.quantityAvailable !== undefined && item.minSellingQuantity !== undefined){
+                    const orderStatus = item.orderStatus;
+
+                    orderStatus.push({
+                        buyId: Object(userId),
+                        quantity: quantity,
+                    });
+
+                    item.orderStatus = orderStatus;
+                    item.quantityAvailable = item.quantityAvailable - quantity * item.minSellingQuantity;
+                    //console.log(item);
+                    await item.save();
+
+                }
+                 
             }
             
-            if(orderCheck.length === 0 && !checkIfOrderIsDone() ){
+            if( !checkIfOrderIsDone() ){
                 const order = new Order({
                     buyerId: buyer?._id ,
                     bagId: bag?._id,
                     paymentStatus: "",
                     packageStatus: "",
                 });
-    
+                let message = "";
                 const paymentStatus = req.body.paymentStatus;
                 if(bagId ){
                     if(paymentStatus === "success" ){
                         order.paymentStatus = "success",
                         order.packageStatus = "will arrive in a day"
-                    }else{
+
+                        const itemsOfBag = bag?.items;
+                        //console.log(itemsOfBag);
+                        itemsOfBag?.forEach((data) => {
+                            // add userId and its quantity in the sellingItem 
+                            if(data?.quantity !== undefined)
+                                updateItemData(String(data?.itemId), String(id), data?.quantity);
+                            });
+                        message = "payment sucessful";
+                        // update the bag to deactive state
+                        await bag?.updateOne({
+                            isActive: false
+                        });
+                    }else{  
                         order.paymentStatus = "failed",
                         order.packageStatus = "NA"
+                        message = "payment failed";
+
                     }
                 }
                 await order.save();
-                await bag?.updateOne({
-                    isActive: false
-                });
-                console.log(bag);
+                
+                //console.log(bag);
                 resp.status(200).send({
-                    message: "sucessfully ordered"
+                    message: message
                 });
             }else{
                 // bag is already 
@@ -456,12 +530,15 @@ router.get("/order", validateJWT, async(req, resp) =>{
     if (userType === "buyer"){
 
         try{
-            const order = await Order.find({
+            const orders = await Order.find({
                 buyerId: id
             }); // get order for the Id
 
 
-            console.log(order);
+            
+
+            resp.status(200).send(orders);
+            return;
 
         }catch(error){
             console.log(error);

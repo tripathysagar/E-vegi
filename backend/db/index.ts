@@ -32,7 +32,11 @@ const sellingItemListSchema = new mongoose.Schema({
     minSellingQuantity: Number,
     pricePerUnit: Number,
     location: String,
-    dateAdded: Number
+    dateAdded: Number,
+    orderStatus: [{
+        buyId: mongoose.Types.ObjectId,
+        quantity: Number,
+    }],
 });
 
 
